@@ -1,4 +1,5 @@
 /* eslint no-param-reassign: "off" */
+import { getDocument } from 'ssr-window';
 import $ from '../../utils/dom';
 import { extend, now, deleteProps } from '../../utils/utils';
 import { getSupport } from '../../utils/get-support';
@@ -49,7 +50,11 @@ class Swiper {
   constructor(...args) {
     let el;
     let params;
-    if (args.length === 1 && args[0].constructor && args[0].constructor === Object) {
+    if (
+      args.length === 1 &&
+      args[0].constructor &&
+      Object.prototype.toString.call(args[0]).slice(8, -1) === 'Object'
+    ) {
       params = args[0];
     } else {
       [el, params] = args;
@@ -70,6 +75,7 @@ class Swiper {
 
     // Swiper Instance
     const swiper = this;
+    swiper.__swiper__ = true;
     swiper.support = getSupport();
     swiper.device = getDevice({ userAgent: params.userAgent });
     swiper.browser = getBrowser();
@@ -86,6 +92,12 @@ class Swiper {
         const moduleParamName = Object.keys(module.params)[0];
         const moduleParams = module.params[moduleParamName];
         if (typeof moduleParams !== 'object' || moduleParams === null) return;
+        if (
+          ['navigation', 'pagination', 'scrollbar'].indexOf(moduleParamName) >= 0 &&
+          params[moduleParamName] === true
+        ) {
+          params[moduleParamName] = { auto: true };
+        }
         if (!(moduleParamName in params && 'enabled' in moduleParams)) return;
         if (params[moduleParamName] === true) {
           params[moduleParamName] = { enabled: true };
@@ -124,6 +136,7 @@ class Swiper {
 
     // Extend Swiper
     extend(swiper, {
+      enabled: swiper.params.enabled,
       el,
 
       // Classes
@@ -194,7 +207,7 @@ class Swiper {
         startTranslate: undefined,
         allowThresholdMove: undefined,
         // Form elements to match
-        formElements: 'input, select, option, textarea, button, video, label',
+        focusableElements: swiper.params.focusableElements,
         // Last click time
         lastClickTime: now(),
         clickTimeout: undefined,
@@ -236,6 +249,37 @@ class Swiper {
 
     // Return app instance
     return swiper;
+  }
+
+  enable() {
+    const swiper = this;
+    if (swiper.enabled) return;
+    swiper.enabled = true;
+    if (swiper.params.grabCursor) {
+      swiper.setGrabCursor();
+    }
+    swiper.emit('enable');
+  }
+
+  disable() {
+    const swiper = this;
+    if (!swiper.enabled) return;
+    swiper.enabled = false;
+    if (swiper.params.grabCursor) {
+      swiper.unsetGrabCursor();
+    }
+    swiper.emit('disable');
+  }
+
+  setProgress(progress, speed) {
+    const swiper = this;
+    progress = Math.min(Math.max(progress, 0), 1);
+    const min = swiper.minTranslate();
+    const max = swiper.maxTranslate();
+    const current = (max - min) * progress + min;
+    swiper.translateTo(current, typeof speed === 'undefined' ? 0 : speed);
+    swiper.updateActiveIndex();
+    swiper.updateSlidesClasses();
   }
 
   emitContainerClasses() {
@@ -405,14 +449,30 @@ class Swiper {
 
     el.swiper = swiper;
 
+    const getWrapperSelector = () => {
+      return `.${(swiper.params.wrapperClass || '').trim().split(' ').join('.')}`;
+    };
+
+    const getWrapper = () => {
+      if (el && el.shadowRoot && el.shadowRoot.querySelector) {
+        const res = $(el.shadowRoot.querySelector(getWrapperSelector()));
+        // Children needs to return slot items
+        res.children = (options) => $el.children(options);
+        return res;
+      }
+      return $el.children(getWrapperSelector());
+    };
     // Find Wrapper
-    let $wrapperEl;
-    if (el && el.shadowRoot && el.shadowRoot.querySelector) {
-      $wrapperEl = $(el.shadowRoot.querySelector(`.${swiper.params.wrapperClass}`));
-      // Children needs to return slot items
-      $wrapperEl.children = (options) => $el.children(options);
-    } else {
-      $wrapperEl = $el.children(`.${swiper.params.wrapperClass}`);
+    let $wrapperEl = getWrapper();
+    if ($wrapperEl.length === 0 && swiper.params.createElements) {
+      const document = getDocument();
+      const wrapper = document.createElement('div');
+      $wrapperEl = $(wrapper);
+      wrapper.className = swiper.params.wrapperClass;
+      $el.append(wrapper);
+      $el.children(`.${swiper.params.slideClass}`).each((slideEl) => {
+        $wrapperEl.append(slideEl);
+      });
     }
 
     extend(swiper, {
@@ -466,7 +526,7 @@ class Swiper {
     }
 
     // Set Grab Cursor
-    if (swiper.params.grabCursor) {
+    if (swiper.params.grabCursor && swiper.enabled) {
       swiper.setGrabCursor();
     }
 
@@ -480,9 +540,11 @@ class Swiper {
         swiper.params.initialSlide + swiper.loopedSlides,
         0,
         swiper.params.runCallbacksOnInit,
+        false,
+        true,
       );
     } else {
-      swiper.slideTo(swiper.params.initialSlide, 0, swiper.params.runCallbacksOnInit);
+      swiper.slideTo(swiper.params.initialSlide, 0, swiper.params.runCallbacksOnInit, false, true);
     }
 
     // Attach events

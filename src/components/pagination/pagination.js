@@ -1,5 +1,10 @@
 import $ from '../../utils/dom';
-import { extend, bindModuleMethods } from '../../utils/utils';
+import {
+  extend,
+  bindModuleMethods,
+  classesToSelector,
+  createElementIfNotDefined,
+} from '../../utils/utils';
 
 const Pagination = {
   update() {
@@ -152,8 +157,10 @@ const Pagination = {
       }
     }
     if (params.type === 'fraction') {
-      $el.find(`.${params.currentClass}`).text(params.formatFractionCurrent(current + 1));
-      $el.find(`.${params.totalClass}`).text(params.formatFractionTotal(total));
+      $el
+        .find(classesToSelector(params.currentClass))
+        .text(params.formatFractionCurrent(current + 1));
+      $el.find(classesToSelector(params.totalClass)).text(params.formatFractionTotal(total));
     }
     if (params.type === 'progressbar') {
       let progressbarDirection;
@@ -171,7 +178,7 @@ const Pagination = {
         scaleY = scale;
       }
       $el
-        .find(`.${params.progressbarFillClass}`)
+        .find(classesToSelector(params.progressbarFillClass))
         .transform(`translate3d(0,0,0) scaleX(${scaleX}) scaleY(${scaleY})`)
         .transition(swiper.params.speed);
     }
@@ -181,9 +188,9 @@ const Pagination = {
     } else {
       swiper.emit('paginationUpdate', $el[0]);
     }
-    $el[swiper.params.watchOverflow && swiper.isLocked ? 'addClass' : 'removeClass'](
-      params.lockClass,
-    );
+    if (swiper.params.watchOverflow && swiper.enabled) {
+      $el[swiper.isLocked ? 'addClass' : 'removeClass'](params.lockClass);
+    }
   },
   render() {
     // Render Container
@@ -218,7 +225,8 @@ const Pagination = {
         }
       }
       $el.html(paginationHTML);
-      swiper.pagination.bullets = $el.find(`.${params.bulletClass.replace(/ /g, '.')}`);
+
+      swiper.pagination.bullets = $el.find(classesToSelector(params.bulletClass));
     }
     if (params.type === 'fraction') {
       if (params.renderFraction) {
@@ -245,6 +253,12 @@ const Pagination = {
   },
   init() {
     const swiper = this;
+    swiper.params.pagination = createElementIfNotDefined(
+      swiper.$el,
+      swiper.params.pagination,
+      swiper.params.createElements,
+      { el: 'swiper-pagination' },
+    );
     const params = swiper.params.pagination;
     if (!params.el) return;
 
@@ -273,7 +287,7 @@ const Pagination = {
     }
 
     if (params.clickable) {
-      $el.on('click', `.${params.bulletClass.replace(/ /g, '.')}`, function onClick(e) {
+      $el.on('click', classesToSelector(params.bulletClass), function onClick(e) {
         e.preventDefault();
         let index = $(this).index() * swiper.params.slidesPerGroup;
         if (swiper.params.loop) index += swiper.loopedSlides;
@@ -285,6 +299,10 @@ const Pagination = {
       $el,
       el: $el[0],
     });
+
+    if (!swiper.enabled) {
+      $el.addClass(params.lockClass);
+    }
   },
   destroy() {
     const swiper = this;
@@ -302,7 +320,7 @@ const Pagination = {
     $el.removeClass(params.modifierClass + params.type);
     if (swiper.pagination.bullets) swiper.pagination.bullets.removeClass(params.bulletActiveClass);
     if (params.clickable) {
-      $el.off('click', `.${params.bulletClass.replace(/ /g, '.')}`);
+      $el.off('click', classesToSelector(params.bulletClass));
     }
   },
 };
@@ -379,13 +397,26 @@ export default {
     destroy(swiper) {
       swiper.pagination.destroy();
     },
+    'enable disable': (swiper) => {
+      const { $el } = swiper.pagination;
+      if ($el) {
+        $el[swiper.enabled ? 'removeClass' : 'addClass'](swiper.params.pagination.lockClass);
+      }
+    },
     click(swiper, e) {
+      const targetEl = e.target;
       if (
         swiper.params.pagination.el &&
         swiper.params.pagination.hideOnClick &&
         swiper.pagination.$el.length > 0 &&
-        !$(e.target).hasClass(swiper.params.pagination.bulletClass)
+        !$(targetEl).hasClass(swiper.params.pagination.bulletClass)
       ) {
+        if (
+          swiper.navigation &&
+          ((swiper.navigation.nextEl && targetEl === swiper.navigation.nextEl) ||
+            (swiper.navigation.prevEl && targetEl === swiper.navigation.prevEl))
+        )
+          return;
         const isHidden = swiper.pagination.$el.hasClass(swiper.params.pagination.hiddenClass);
         if (isHidden === true) {
           swiper.emit('paginationShow');

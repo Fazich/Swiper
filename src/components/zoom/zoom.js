@@ -133,10 +133,6 @@ const Zoom = {
       gesture.slideWidth = gesture.$slideEl[0].offsetWidth;
       gesture.slideHeight = gesture.$slideEl[0].offsetHeight;
       gesture.$imageWrapEl.transition(0);
-      if (swiper.rtl) {
-        image.startX = -image.startX;
-        image.startY = -image.startY;
-      }
     }
     // Define if we need image drag
     const scaledWidth = image.width * zoom.scale;
@@ -298,15 +294,27 @@ const Zoom = {
     const { gesture, image } = zoom;
 
     if (!gesture.$slideEl) {
-      if (swiper.params.virtual && swiper.params.virtual.enabled && swiper.virtual) {
-        gesture.$slideEl = swiper.$wrapperEl.children(`.${swiper.params.slideActiveClass}`);
-      } else {
-        gesture.$slideEl = swiper.slides.eq(swiper.activeIndex);
+      if (e && e.target) {
+        gesture.$slideEl = $(e.target).closest(`.${swiper.params.slideClass}`);
       }
+      if (!gesture.$slideEl) {
+        if (swiper.params.virtual && swiper.params.virtual.enabled && swiper.virtual) {
+          gesture.$slideEl = swiper.$wrapperEl.children(`.${swiper.params.slideActiveClass}`);
+        } else {
+          gesture.$slideEl = swiper.slides.eq(swiper.activeIndex);
+        }
+      }
+
       gesture.$imageEl = gesture.$slideEl.find('img, svg, canvas, picture, .swiper-zoom-target');
       gesture.$imageWrapEl = gesture.$imageEl.parent(`.${params.containerClass}`);
     }
-    if (!gesture.$imageEl || gesture.$imageEl.length === 0) return;
+    if (
+      !gesture.$imageEl ||
+      gesture.$imageEl.length === 0 ||
+      !gesture.$imageWrapEl ||
+      gesture.$imageWrapEl.length === 0
+    )
+      return;
 
     gesture.$slideEl.addClass(`${params.zoomedSlideClass}`);
 
@@ -398,7 +406,13 @@ const Zoom = {
       gesture.$imageEl = gesture.$slideEl.find('img, svg, canvas, picture, .swiper-zoom-target');
       gesture.$imageWrapEl = gesture.$imageEl.parent(`.${params.containerClass}`);
     }
-    if (!gesture.$imageEl || gesture.$imageEl.length === 0) return;
+    if (
+      !gesture.$imageEl ||
+      gesture.$imageEl.length === 0 ||
+      !gesture.$imageWrapEl ||
+      gesture.$imageWrapEl.length === 0
+    )
+      return;
 
     zoom.scale = 1;
     zoom.currentScale = 1;
@@ -646,7 +660,12 @@ export default {
       swiper.zoom.onTouchEnd(e);
     },
     doubleTap(swiper, e) {
-      if (swiper.params.zoom.enabled && swiper.zoom.enabled && swiper.params.zoom.toggle) {
+      if (
+        !swiper.animating &&
+        swiper.params.zoom.enabled &&
+        swiper.zoom.enabled &&
+        swiper.params.zoom.toggle
+      ) {
         swiper.zoom.toggle(e);
       }
     },

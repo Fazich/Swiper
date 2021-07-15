@@ -27,7 +27,9 @@ const Swiper = {
     speed: { type: Number, default: undefined },
     cssMode: { type: Boolean, default: undefined },
     updateOnWindowResize: { type: Boolean, default: undefined },
+    resizeObserver: { type: Boolean, default: undefined },
     nested: { type: Boolean, default: undefined },
+    focusableElements: { type: Boolean, default: undefined },
     width: { type: Number, default: undefined },
     height: { type: Number, default: undefined },
     preventInteractionOnTransition: { type: Boolean, default: undefined },
@@ -112,6 +114,9 @@ const Swiper = {
     slideDuplicatePrevClass: { type: String, default: undefined },
     wrapperClass: { type: String, default: undefined },
     runCallbacksOnInit: { type: Boolean, default: undefined },
+    observer: { type: Boolean, default: undefined },
+    observeParents: { type: Boolean, default: undefined },
+    observeSlideChildren: { type: Boolean, default: undefined },
     a11y: { type: [Boolean, Object], default: undefined },
     autoplay: { type: [Boolean, Object], default: undefined },
     controller: { type: Object, default: undefined },
@@ -163,6 +168,7 @@ const Swiper = {
     'keyPress',
     'lazyImageLoad',
     'lazyImageReady',
+    'lock',
     'loopFix',
     'momentumBounce',
     'navigationHide',
@@ -208,6 +214,7 @@ const Swiper = {
     'touchStart',
     'transitionEnd',
     'transitionStart',
+    'unlock',
     'update',
     'zoomChange',
   ],
@@ -294,7 +301,16 @@ const Swiper = {
         swiperRef.value &&
         !swiperRef.value.destroyed
       ) {
-        updateSwiper(swiperRef.value, slidesRef.value, newPassedParams, changedParams);
+        updateSwiper({
+          swiper: swiperRef.value,
+          slides: slidesRef.value,
+          passedParams: newPassedParams,
+          changedParams,
+          nextEl: nextElRef.value,
+          prevEl: prevElRef.value,
+          scrollbarEl: scrollbarElRef.value,
+          paginationEl: paginationElRef.value,
+        });
       }
       breakpointChanged.value = false;
     });

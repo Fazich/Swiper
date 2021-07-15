@@ -6,7 +6,8 @@ export default function onTouchMove(event) {
   const document = getDocument();
   const swiper = this;
   const data = swiper.touchEventsData;
-  const { params, touches, rtlTranslate: rtl } = swiper;
+  const { params, touches, rtlTranslate: rtl, enabled } = swiper;
+  if (!enabled) return;
   let e = event;
   if (e.originalEvent) e = e.originalEvent;
   if (!data.isTouched) {
@@ -58,7 +59,7 @@ export default function onTouchMove(event) {
     }
   }
   if (data.isTouchEvent && document.activeElement) {
-    if (e.target === document.activeElement && $(e.target).is(data.formElements)) {
+    if (e.target === document.activeElement && $(e.target).is(data.focusableElements)) {
       data.isMoved = true;
       swiper.allowClick = false;
       return;
@@ -183,6 +184,9 @@ export default function onTouchMove(event) {
     swiper.swipeDirection === 'prev' &&
     data.currentTranslate > data.startTranslate
   ) {
+    data.currentTranslate = data.startTranslate;
+  }
+  if (!swiper.allowSlidePrev && !swiper.allowSlideNext) {
     data.currentTranslate = data.startTranslate;
   }
 

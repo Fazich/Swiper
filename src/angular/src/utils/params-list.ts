@@ -7,7 +7,9 @@ export const paramsList = [
   '_speed',
   'cssMode',
   'updateOnWindowResize',
+  'resizeObserver',
   'nested',
+  'focusableElements',
   '_width',
   '_height',
   'preventInteractionOnTransition',
@@ -92,6 +94,9 @@ export const paramsList = [
   'slideDuplicatePrevClass',
   'wrapperClass',
   'runCallbacksOnInit',
+  'observer',
+  'observeParents',
+  'observeSlideChildren',
 
   // modules
   'a11y',

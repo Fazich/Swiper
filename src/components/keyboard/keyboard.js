@@ -1,3 +1,4 @@
+/* eslint-disable consistent-return */
 import { getWindow, getDocument } from 'ssr-window';
 import $ from '../../utils/dom';
 import { bindModuleMethods } from '../../utils/utils';
@@ -5,6 +6,7 @@ import { bindModuleMethods } from '../../utils/utils';
 const Keyboard = {
   handle(event) {
     const swiper = this;
+    if (!swiper.enabled) return;
     const window = getWindow();
     const document = getDocument();
     const { rtlTranslate: rtl } = swiper;
@@ -56,15 +58,19 @@ const Keyboard = {
       ) {
         return undefined;
       }
+
+      const $el = swiper.$el;
+      const swiperWidth = $el[0].clientWidth;
+      const swiperHeight = $el[0].clientHeight;
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
       const swiperOffset = swiper.$el.offset();
       if (rtl) swiperOffset.left -= swiper.$el[0].scrollLeft;
       const swiperCoord = [
         [swiperOffset.left, swiperOffset.top],
-        [swiperOffset.left + swiper.width, swiperOffset.top],
-        [swiperOffset.left, swiperOffset.top + swiper.height],
-        [swiperOffset.left + swiper.width, swiperOffset.top + swiper.height],
+        [swiperOffset.left + swiperWidth, swiperOffset.top],
+        [swiperOffset.left, swiperOffset.top + swiperHeight],
+        [swiperOffset.left + swiperWidth, swiperOffset.top + swiperHeight],
       ];
       for (let i = 0; i < swiperCoord.length; i += 1) {
         const point = swiperCoord[i];

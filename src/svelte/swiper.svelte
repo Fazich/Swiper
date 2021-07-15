@@ -125,14 +125,22 @@
       swiperInstance &&
       !swiperInstance.destroyed
     ) {
-      updateSwiper(swiperInstance, passedParams, changedParams);
+      updateSwiper({
+        swiper: swiperInstance,
+        passedParams,
+        changedParams,
+        nextEl,
+        prevEl,
+        scrollbarEl,
+        paginationEl,
+      });
     }
     breakpointChanged = false;
     oldPassedParams = passedParams;
   });
 
   onDestroy(() => {
-    if (swiperInstance && !swiperInstance.destroyed) {
+    if (typeof window !== 'undefined' && swiperInstance && !swiperInstance.destroyed) {
       swiperInstance.destroy(true, false);
     }
   });

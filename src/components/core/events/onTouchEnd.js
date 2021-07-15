@@ -4,7 +4,8 @@ export default function onTouchEnd(event) {
   const swiper = this;
   const data = swiper.touchEventsData;
 
-  const { params, touches, rtlTranslate: rtl, $wrapperEl, slidesGrid, snapGrid } = swiper;
+  const { params, touches, rtlTranslate: rtl, $wrapperEl, slidesGrid, snapGrid, enabled } = swiper;
+  if (!enabled) return;
   let e = event;
   if (e.originalEvent) e = e.originalEvent;
   if (data.allowTouchCallbacks) {
@@ -231,6 +232,7 @@ export default function onTouchEnd(event) {
           });
         }
       } else {
+        swiper.emit('_freeModeNoMomentumRelease');
         swiper.updateProgress(newPosition);
       }
 
@@ -239,6 +241,8 @@ export default function onTouchEnd(event) {
     } else if (params.freeModeSticky) {
       swiper.slideToClosest();
       return;
+    } else if (params.freeMode) {
+      swiper.emit('_freeModeNoMomentumRelease');
     }
 
     if (!params.freeModeMomentum || timeDiff >= params.longSwipesMs) {
